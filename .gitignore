@@ -337,7 +337,7 @@ appsettings.Development.json
 appsettings.Production.json
 appsettings.Staging.json
 
-KamihamaWeb/MagiRecoStatic/
-KamihamaWeb/FileCache/
+KamihamaWeb/MagiRecoStatic
+KamihamaWeb/FileCache
 KamihamaWeb/en_cache.json
-KamihamaWeb/Logs/
+KamihamaWeb/Logs
