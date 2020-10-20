@@ -121,7 +121,7 @@ namespace KamihamaWeb.Services
                 {
                     var split = asset.Key.Split("/").Last();
                     var scenario = split[0..^5]; // Trim .json from end
-                    Log.Debug($"Adding script {scenario}.");
+                    //Log.Debug($"Adding script {scenario}.");
                     GamedataAssets.Add($"asset_scenario_{scenario}", new Dictionary<string, GamedataAsset>()
                     {
                         {scenario,asset.Value}
