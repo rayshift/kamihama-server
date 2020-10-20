@@ -27,7 +27,7 @@ namespace KamihamaWeb.Controllers
             var response = new APIResult(200, "ok");
             response.Add("endpoint", _config["MagiRecoServer:Endpoint"]);
             response.Add("version", 100);
-            response.Add("max_threads", _config["MagiRecoServer:MaxThreads"]);
+            response.Add("max_threads", int.Parse(_config["MagiRecoServer:MaxThreads"]));
             return response;
         }
 
