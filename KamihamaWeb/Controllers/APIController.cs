@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using KamihamaWeb.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+
 // ReSharper disable InconsistentNaming
 
 namespace KamihamaWeb.Controllers
@@ -13,14 +15,19 @@ namespace KamihamaWeb.Controllers
     [ApiController]
     public class APIController : ControllerBase
     {
+        public APIController(IConfiguration config)
+        {
+            _config = config;
+        }
+
+        private IConfiguration _config { get; set; }
         [Route("endpoint")]
         public IActionResult GetEndpoint()
         {
             var response = new APIResult(200, "ok");
-            response.Add("endpoint", "https://dev01-ma84hvas.kamihama.io/game");
-            //response.Add("master", "http://local-mBha9xzf.kamihama.io:64571/game/");
+            response.Add("endpoint", _config["MagiRecoServer:Endpoint"]);
             response.Add("version", 100);
-            response.Add("max_threads", 40);
+            response.Add("max_threads", _config["MagiRecoServer:MaxThreads"]);
             return response;
         }
 
