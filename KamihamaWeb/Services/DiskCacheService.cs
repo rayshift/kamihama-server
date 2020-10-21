@@ -47,12 +47,22 @@ namespace KamihamaWeb.Services
                     try
                     {
                         var stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                        return new Tuple<int, Stream>(0, stream);
+
+                        if (stream.Length == 0)
+                        {
+                            Log.Information($"Empty file found, deleting {filePath}.");
+                            File.Delete(filePath);
+                            return await FastFetch(cacheItem, filePath, versionMd5);
+                        }
+                        else
+                        {
+                            return new Tuple<int, Stream>(0, stream);
+                        }
                     }
                     catch (IOException) // File in use, wait
                     {
-                        Log.Debug("Failed, file is already being downloaded, retrying in 500ms.");
-                        await Task.Delay(500);
+                        Log.Debug("Failed, file is already being downloaded, retrying in 1000ms.");
+                        await Task.Delay(1000);
                     }
                 }
                 Log.Warning($"Max loops exceeded in DiskCacheService.Get() for {cacheItem}.");
