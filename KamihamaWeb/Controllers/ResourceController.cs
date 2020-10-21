@@ -98,7 +98,15 @@ namespace KamihamaWeb.Controllers
                         if (System.IO.File.Exists(diskUrl))
                         {
                             var diskItem = System.IO.File.Open(diskUrl, FileMode.Open, FileAccess.Read);
-                            return new FileStreamResult(diskItem, "binary/octet-stream");
+
+                            if (diskItem.Length == 0)
+                            {
+                                return new APIResult(409, "empty file, retry");
+                            }
+                            else
+                            {
+                                return new FileStreamResult(diskItem, "binary/octet-stream");
+                            }
                         }
                         else
                         {
