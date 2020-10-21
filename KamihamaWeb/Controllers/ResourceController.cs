@@ -118,7 +118,7 @@ namespace KamihamaWeb.Controllers
                 }
                 else if (asset.Item1 == 500)
                 {
-                    return new APIResult(500, "internal error fetching asset");
+                    return new APIResult(503, "internal error fetching asset");
                 }
                 else
                 {

@@ -98,7 +98,9 @@ namespace KamihamaWeb.Util
                         Log.Debug($"Removing duplicate asset {asset.Key}");
                         englishAssets.Remove(asset.Value.Path);
                     }
-                    else if (asset.Key.StartsWith("image_native/mini/") || asset.Key.StartsWith("image_native/live2d/"))
+                    else if (asset.Key.StartsWith("image_native/mini/") 
+                             || asset.Key.StartsWith("image_native/live2d/")
+                             || asset.Key.StartsWith("image_native/scene/gacha"))
                     {
                         Log.Debug($"Removing invalid asset {asset.Key}.");
                         englishAssets.Remove(asset.Value.Path);
