@@ -46,6 +46,8 @@ namespace KamihamaWeb.Util
             Dictionary<string, GamedataAsset> englishAssets = new Dictionary<string, GamedataAsset>();
 
 
+
+
             if (Directory.Exists("MagiRecoStatic/"))
             {
                 List<string> files = Directory.GetFiles("MagiRecoStatic/magica/resource/download/asset/master",
@@ -54,7 +56,9 @@ namespace KamihamaWeb.Util
 
                 foreach (var file in files)
                 {
+
                     var fileInfo = GetFileInformation(file);
+                    
                     englishAssets.Add(fileInfo.Path, fileInfo);
 
                 }
@@ -94,6 +98,11 @@ namespace KamihamaWeb.Util
                         Log.Debug($"Removing duplicate asset {asset.Key}");
                         englishAssets.Remove(asset.Value.Path);
                     }
+                    else if (asset.Key.StartsWith("image_native/mini/") || asset.Key.StartsWith("image_native/live2d/"))
+                    {
+                        Log.Debug($"Removing invalid asset {asset.Key}.");
+                        englishAssets.Remove(asset.Value.Path);
+                    }
                 }
 
                 Log.Information("Writing en_cache.json...");
@@ -122,7 +131,8 @@ namespace KamihamaWeb.Util
         public GamedataAsset GetFileInformation(string file)
         {
             var fileInfo = new FileInfo(file);
-            var filePath = file.Replace(@"\", "/").Replace("//", "/").Substring(BasePathLength); // Clean up path
+            var filePath = file.Replace(@"\", "/").Replace("//", "/").Substring(BasePathLength);
+            // Clean up path
             List<GamedataFileList> fileList = new List<GamedataFileList>();
 
             fileList.Add(new GamedataFileList()
