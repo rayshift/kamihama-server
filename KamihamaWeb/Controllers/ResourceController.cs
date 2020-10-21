@@ -115,7 +115,7 @@ namespace KamihamaWeb.Controllers
                     }
                     else
                     {
-                        Log.Debug($"Md5 mismatch on {url}, found {md5}, expected {_masterService.EnglishMasterAssets[url].Md5}.");
+                        Log.Information($"Md5 mismatch on {url}, found {md5}, expected {_masterService.EnglishMasterAssets[url].Md5}.");
                     }
                 }
                 var asset = await _diskCache.Get(url, md5);

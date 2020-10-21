@@ -61,14 +61,14 @@ namespace KamihamaWeb.Services
                     }
                     catch (IOException) // File in use, wait
                     {
-                        Log.Debug("Failed, file is already being downloaded, retrying in 1000ms.");
+                        Log.Information("Failed, file is already being downloaded, retrying in 1000ms.");
                         await Task.Delay(1000);
                     }
                 }
                 Log.Warning($"Max loops exceeded in DiskCacheService.Get() for {cacheItem}.");
                 return new Tuple<int, Stream>(500, null);
             }
-            Log.Debug($"Fetching {cacheItem}.");
+            Log.Information($"Fetching {cacheItem}.");
             
             return await FastFetch(cacheItem, filePath, versionMd5);
         }

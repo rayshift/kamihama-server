@@ -20,9 +20,6 @@ namespace KamihamaWeb
             Log.Logger = new LoggerConfiguration()
                 .WriteTo.Console()
                 .WriteTo.File("Logs/log-.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 99999999)
-#if DEBUG
-                .MinimumLevel.Debug()
-#endif
                 .CreateLogger();
 
             try
