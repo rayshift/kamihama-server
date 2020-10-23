@@ -100,7 +100,10 @@ namespace KamihamaWeb.Util
                     }
                     else if (asset.Key.StartsWith("image_native/mini/") 
                              || asset.Key.StartsWith("image_native/live2d/")
-                             || asset.Key.StartsWith("image_native/scene/gacha"))
+                             //|| asset.Key.StartsWith("image_native/scene/gacha")
+                             || asset.Key.StartsWith("scenario/json/general/")
+                             || asset.Key.StartsWith("scenario/json/oneShot/")
+                             )
                     {
                         Log.Debug($"Removing invalid asset {asset.Key}.");
                         englishAssets.Remove(asset.Value.Path);
