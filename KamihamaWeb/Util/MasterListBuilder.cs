@@ -103,6 +103,10 @@ namespace KamihamaWeb.Util
                              //|| asset.Key.StartsWith("image_native/scene/gacha")
                              || asset.Key.StartsWith("scenario/json/general/")
                              || asset.Key.StartsWith("scenario/json/oneShot/")
+                             || asset.Key.StartsWith("image_native/scene/event/")
+                             || asset.Key.StartsWith("image_native/scene/emotion/")
+                             || asset.Key.StartsWith("image_native/scene/event/")
+                             || asset.Key.StartsWith("image_native/scene/web/")
                              )
                     {
                         Log.Debug($"Removing invalid asset {asset.Key}.");
