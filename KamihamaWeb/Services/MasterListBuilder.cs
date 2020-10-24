@@ -180,7 +180,7 @@ namespace KamihamaWeb.Services
 
         public async Task<GamedataAsset> BuildScenarioGeneralJson(GamedataAsset generalAsset, Dictionary<string, GamedataAsset> englishAssets)
         {
-            Log.Information($"Building scenario JSON for {generalAsset.Path}.");
+            //Log.Information($"Building scenario JSON for {generalAsset.Path}.");
             if (!englishAssets.ContainsKey(generalAsset.Path)) // No english to replace with (yet)
             {
                 Log.Warning($"No english asset for {generalAsset.Path}! This should be caught earlier!");
@@ -235,7 +235,7 @@ namespace KamihamaWeb.Services
             {
                 if (!en_json.story.ContainsKey(item.Key))
                 {
-                    Log.Information($"Adding key {item.Key}.");
+                    Log.Debug($"Adding key {item.Key}.");
                     en_json.story[item.Key] = item.Value;
                 }
             }

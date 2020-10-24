@@ -59,25 +59,38 @@ namespace KamihamaWeb.Services
             "asset_char_list"
         };
 
-
+        /// <summary>
+        /// Update master lists
+        /// </summary>
+        /// <returns>Success</returns>
         public async Task<bool> UpdateMasterLists()
         {
             Log.Information("Updating master lists.");
             UpdateIsRunning = true;
 
+
+            Log.Information("Fetching current asset version...");
+            var masterJson = await _rest.GetMasterJson<MasterJsonConfig>(_config["MagiRecoServer:AssetVersion"]);
+            if (masterJson != null)
+            {
+                Log.Information($"Asset version: {masterJson.version}");
+                AssetsCurrentVersion = masterJson.version;
+            }
+
+
             var workGamedataAssets = new Dictionary<string, List<GamedataAsset>>();
             foreach (var assetToMod in ModdedAssetLists)
             {
                 Log.Information($"Updating master entry {assetToMod}.json...");
-                var masterJson = await _rest.GetMasterJson<List<GamedataAsset>>($"{assetToMod}.json.gz");
+                var json = await _rest.GetMasterJson<List<GamedataAsset>>($"{assetToMod}.json.gz");
 
-                if (masterJson == null)
+                if (json == null)
                 {
                     Log.Fatal($"Failed to parse JSON for {assetToMod}, quitting.");
                     return false;
                 }
 
-                workGamedataAssets.Add(assetToMod, masterJson);
+                workGamedataAssets.Add(assetToMod, json);
             }
 
             Log.Information("Configuring master list...");
@@ -202,22 +215,46 @@ namespace KamihamaWeb.Services
         public Dictionary<string, GamedataAsset> EnglishMasterAssets { get; set; }
         public Dictionary<string, Dictionary<string, GamedataAsset>> GamedataAssets { get; set; }
 
+        /// <summary>
+        /// Is a master data update needed?
+        /// </summary>
+        /// <returns>Boolean</returns>
         public async Task<bool> IsUpdateRequired()
         {
             var masterJson = await _rest.GetMasterJson<MasterJsonConfig>(_config["MagiRecoServer:AssetVersion"]);
-            if (masterJson != null && AssetsCurrentVersion < masterJson.version)
+            return masterJson != null && AssetsCurrentVersion < masterJson.version;
+        }
+
+        /// <summary>
+        /// Run update on master data
+        /// </summary>
+        /// <returns>Successful</returns>
+        public async Task<bool> RunUpdate()
+        {
+            if (await IsUpdateRequired())
             {
-                return true;
+                if (!UpdateIsRunning)
+                {
+                    Log.Information($"Update to master data required. Current version: {AssetsCurrentVersion}.");
+                    try
+                    {
+                        return await UpdateMasterLists();
+                    }
+                    finally
+                    {
+                        Log.Information($"Update finished. New version: {AssetsCurrentVersion}");
+                    }
+                }
+                else
+                {
+                    Log.Information("Skipping update as an update is currently running.");
+                }
             }
             else
             {
-                return false;
+                Log.Information("No update needed.");
             }
-        }
-
-        public async Task<bool> RunUpdate()
-        {
-            return true;
+            return false;
         }
 
         public async Task<string> ProvideJson(string which)

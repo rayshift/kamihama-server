@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Quartz;
 
 namespace KamihamaWeb
 {
@@ -44,10 +45,46 @@ namespace KamihamaWeb
                         new[] { "application/json" });
             });
 
+            // Dependencies
             services.AddTransient<IRestSharpTransient, RestSharpClient>();
             services.AddSingleton<IMasterSingleton, MasterService>();
             services.AddSingleton<IDiskCacheSingleton, DiskCacheService>();
             services.AddTransient<IMasterListBuilder, MasterListBuilder>();
+
+            // Jobs
+            services.AddTransient<MasterUpdateJob>();
+
+            services.AddQuartz(q =>
+            {
+                // base quartz scheduler, job and trigger configuration
+                q.SchedulerId = "Scheduler-Core";
+
+                q.UseMicrosoftDependencyInjectionJobFactory(options =>
+                {
+                    // if we don't have the job in DI, allow fallback 
+                    // to configure via default constructor
+                    options.AllowDefaultConstructor = true;
+                });
+
+                var jobKey = new JobKey("Master Update Check", "Master");
+                q.AddJob<MasterUpdateJob>(jobKey, j => j.WithDescription("Update master asset list if required."));
+
+                q.AddTrigger(t => t.WithIdentity("Master Update Check Trigger")
+                    .ForJob(jobKey)
+                    .StartNow()
+                    .WithSimpleSchedule(s => s.
+                        WithInterval(TimeSpan.FromMinutes(2))
+                        .RepeatForever()
+                    )
+                    .WithDescription("Trigger for Master Update Check to update asset list."));
+            });
+
+            // ASP.NET Core hosting
+            services.AddQuartzServer(options =>
+            {
+                // when shutting down we want jobs to complete gracefully
+                options.WaitForJobsToComplete = true;
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
