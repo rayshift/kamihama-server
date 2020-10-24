@@ -55,11 +55,7 @@ namespace KamihamaWeb.Services
                 }
                 else
                 {
-                    Log.Warning($"Cache item {generalJson} not found!");
-                    return new DiskCacheItem()
-                    {
-                        Result = DiskCacheResultType.Failed
-                    };
+                    Log.Information($"Cache item {generalJson} not found! Falling back to origin.");
                 }
             }
             if (File.Exists(filePath))
