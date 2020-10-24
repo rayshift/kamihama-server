@@ -2,26 +2,40 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using KamihamaWeb.Interfaces;
 using KamihamaWeb.Models;
+using KamihamaWeb.Util;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Serilog;
+using StackExchange.Redis;
 
-namespace KamihamaWeb.Util
+namespace KamihamaWeb.Services
 {
-    public class MasterListBuilder
+    public class MasterListBuilder: IMasterListBuilder
     {
-        private Regex multiPartRegex = new Regex(@"\.a[a-z]{2}"); // A bit crude
-        public MasterListBuilder()
+        private readonly Regex _multiPartRegex = new Regex(@"\.a[a-z]{2}"); // A bit crude
+
+        private IDiskCacheSingleton _disk;
+        private IDatabase _cache;
+
+        public MasterListBuilder(IDiskCacheSingleton disk, IDistributedCache cache)
         {
             BasePathLength =
                 @"MagiRecoStatic/magica/resource/download/asset/master/resource/".Length;
+
+            _cache = ((RedisCache)cache).GetConnection().GetDatabase();
+            _disk = disk;
         }
 
         private int BasePathLength { get; }
+
+        private string StaticDirectory { get; set; } = "MagiRecoStatic/";
 
         public async Task<Dictionary<string, GamedataAsset>> GenerateEnglishAssetList()
         {
@@ -48,9 +62,9 @@ namespace KamihamaWeb.Util
 
 
 
-            if (Directory.Exists("MagiRecoStatic/"))
+            if (Directory.Exists(StaticDirectory))
             {
-                List<string> files = Directory.GetFiles("MagiRecoStatic/magica/resource/download/asset/master",
+                List<string> files = Directory.GetFiles(Path.Combine(StaticDirectory, "magica/resource/download/asset/master"),
                     "*.*",
                     SearchOption.AllDirectories).ToList();
 
@@ -93,7 +107,7 @@ namespace KamihamaWeb.Util
                 // Remove multi-part files
                 foreach (var asset in englishAssets)
                 {
-                    if (multiPartRegex.IsMatch(asset.Value.Path.Substring(asset.Value.Path.Length - 4)))
+                    if (_multiPartRegex.IsMatch(asset.Value.Path.Substring(asset.Value.Path.Length - 4)))
                     {
                         Log.Debug($"Removing duplicate asset {asset.Key}");
                         englishAssets.Remove(asset.Value.Path);
@@ -101,7 +115,7 @@ namespace KamihamaWeb.Util
                     else if (asset.Key.StartsWith("image_native/mini/") 
                              || asset.Key.StartsWith("image_native/live2d/")
                              //|| asset.Key.StartsWith("image_native/scene/gacha")
-                             || asset.Key.StartsWith("scenario/json/general/")
+                             //|| asset.Key.StartsWith("scenario/json/general/")
                              || asset.Key.StartsWith("scenario/json/oneShot/")
                              || asset.Key.StartsWith("image_native/scene/event/")
                              || asset.Key.StartsWith("image_native/scene/emotion/")
@@ -162,6 +176,77 @@ namespace KamihamaWeb.Util
             };
 
             return asset;
+        }
+
+        public async Task<GamedataAsset> BuildScenarioGeneralJson(GamedataAsset generalAsset, Dictionary<string, GamedataAsset> englishAssets)
+        {
+            Log.Information($"Building scenario JSON for {generalAsset.Path}.");
+            if (!englishAssets.ContainsKey(generalAsset.Path)) // No english to replace with (yet)
+            {
+                Log.Warning($"No english asset for {generalAsset.Path}! This should be caught earlier!");
+                return generalAsset;
+            }
+
+            // Fetch JP asset
+            DiskCacheItem jpAsset = await _disk.Get(generalAsset.Path, generalAsset.Md5, true);
+
+            if (jpAsset.Result != DiskCacheResultType.Success)
+            {
+                Log.Warning("An error has occurred fetching a general scenario asset.");
+                return generalAsset;
+            }
+
+            // Merge assets
+            var enPath = Path.Combine(StaticDirectory, "magica/resource/download/asset/master/resource",
+                generalAsset.Path);
+
+            if (!File.Exists(enPath))
+            {
+                Log.Warning($"File {enPath} does not exist!");
+                return generalAsset;
+            }
+            var mergedAsset = MergeScenarioGeneral(
+                Encoding.UTF8.GetString(
+                    CryptUtil.ReadFully(jpAsset.Data)
+                    ),
+                await File.ReadAllTextAsync(enPath)
+                );
+
+            var storeFilePath = await _disk.Store(generalAsset.Path, Encoding.UTF8.GetBytes(mergedAsset),
+                DiskCacheService.StoreType.ScenarioGeneral);
+
+            generalAsset.AssetSource = AssetSourceType.GeneralScript;
+            generalAsset.Md5 = CryptUtil.CalculateMd5File(storeFilePath);
+            generalAsset.FileList[0].Size = new FileInfo(storeFilePath).Length;
+            return generalAsset;
+        }
+
+        private string MergeScenarioGeneral(string jp, string en)
+        {
+            if (jp == en)
+            {
+                return jp;
+            }
+
+            var jp_json = JsonConvert.DeserializeObject<ScenarioGeneral>(jp);
+            var en_json = JsonConvert.DeserializeObject<ScenarioGeneral>(en);
+
+            foreach (var item in jp_json.story)
+            {
+                if (!en_json.story.ContainsKey(item.Key))
+                {
+                    Log.Information($"Adding key {item.Key}.");
+                    en_json.story[item.Key] = item.Value;
+                }
+            }
+
+            /*jp_json.Merge(en_json, new JsonMergeSettings()
+            {
+                MergeArrayHandling = MergeArrayHandling.Union,
+                MergeNullValueHandling = MergeNullValueHandling.Ignore,
+            });*/
+
+            return JsonConvert.SerializeObject(en_json);
         }
     }
 }

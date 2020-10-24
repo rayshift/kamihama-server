@@ -21,12 +21,14 @@ namespace KamihamaWeb.Services
         private IDatabase _cache { get; set; }
         private IConfiguration _config { get; set; }
         private IRestSharpTransient _rest { get; set; }
+        private IMasterListBuilder _builder { get; set; }
 
         public MasterService(
             IDistributedCache cache, 
             IConfiguration config,
-            IRestSharpTransient rest
-            ) : this(Guid.NewGuid(), cache, config, rest)
+            IRestSharpTransient rest,
+            IMasterListBuilder builder
+            ) : this(Guid.NewGuid(), cache, config, rest, builder)
         {
         }
 
@@ -34,13 +36,15 @@ namespace KamihamaWeb.Services
             Guid guid, 
             IDistributedCache cache, 
             IConfiguration config,
-            IRestSharpTransient rest
+            IRestSharpTransient rest,
+            IMasterListBuilder builder
             )
         {
             Guid = guid;
             _config = config;
             _cache = ((RedisCache) cache).GetConnection().GetDatabase();
             _rest = rest;
+            _builder = builder;
             Task.Run(Initialize);
         }
         public Guid Guid { get; set; }
@@ -79,9 +83,13 @@ namespace KamihamaWeb.Services
 
             Log.Information("Configuring master list...");
 
+            var postProcessingGeneralScenario = new Dictionary<string, GamedataAsset>();
+
             long counterReplace = 0;
             long counterSkip = 0;
             long counterNew = 0;
+            long counterPost = 0;
+
             foreach (var assetType in workGamedataAssets)
             {
                 var readyAssets = new Dictionary<string, GamedataAsset>();
@@ -90,7 +98,12 @@ namespace KamihamaWeb.Services
                     // Replace with english assets as needed
                     if (EnglishMasterAssets.ContainsKey(asset.Path))
                     {
-                        if (EnglishMasterAssets[asset.Path].Md5 != asset.Md5)
+                        if (asset.Path.StartsWith("scenario/json/general/"))
+                        {
+                            postProcessingGeneralScenario.Add(asset.Path, asset);
+                            counterPost++;
+                        }
+                        else if (EnglishMasterAssets[asset.Path].Md5 != asset.Md5)
                         {
                             //Log.Debug($"Replacing Japanese asset with English asset for {asset.Path}.");
                             readyAssets.Add(asset.Path, EnglishMasterAssets[asset.Path]);
@@ -112,7 +125,7 @@ namespace KamihamaWeb.Services
                 }
                 GamedataAssets.Add(assetType.Key, readyAssets);
             }
-            Log.Information($"Finished setting up. {counterReplace} replaced assets, {counterSkip} duplicate assets, {counterNew} new assets.");
+            Log.Information($"Finished setting up. {counterReplace} replaced assets, {counterSkip} duplicate assets, {counterNew} new assets, {counterPost} assets for post processing.");
 
             // Add scripts
             foreach (var asset in EnglishMasterAssets)
@@ -127,6 +140,14 @@ namespace KamihamaWeb.Services
                         {scenario,asset.Value}
                     });
                 }
+            }
+
+            // Post processing
+            foreach (var asset in postProcessingGeneralScenario)
+            {
+                var builtJson = await _builder.BuildScenarioGeneralJson(asset.Value, EnglishMasterAssets);
+
+                GamedataAssets["asset_main"].Add(builtJson.Path, builtJson);
             }
             IsReady = true;
             return true;
@@ -155,8 +176,8 @@ namespace KamihamaWeb.Services
                 await Task.Delay(delay);
                 delay *= 2;
             }
-            var builder= new MasterListBuilder();
-            var lists = await builder.GenerateEnglishAssetList();
+
+            var lists = await _builder.GenerateEnglishAssetList();
 
             if (lists != null)
             {
@@ -188,11 +209,6 @@ namespace KamihamaWeb.Services
                 return false;
             }
         }
-
-        //public async Task<FileStream> ProvideFile(string filePath)
-        //{
-
-//        }
 
         public async Task<string> ProvideJson(string which)
         {

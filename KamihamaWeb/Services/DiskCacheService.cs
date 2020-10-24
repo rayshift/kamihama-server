@@ -26,18 +26,42 @@ namespace KamihamaWeb.Services
             }
 
             CacheDirectory = config["MagiRecoServer:CacheDirectory"];
+            ScenarioCacheDirectory = $"{config["MagiRecoServer:CacheDirectory"]}/scenario/json/general/";
             Directory.CreateDirectory(CacheDirectory);
+            Directory.CreateDirectory(ScenarioCacheDirectory);
         }
 
         public Guid Guid { get; }
         private IRestSharpTransient Rest { get; set; }
         private string CacheDirectory { get; set; } = "";
+        private string ScenarioCacheDirectory { get; set; } = "";
 
-        public async Task<Tuple<int, Stream>> Get(string cacheItem, string versionMd5)
+        public async Task<DiskCacheItem> Get(string cacheItem, string versionMd5, bool forceOrigin = false)
         {
             var filename = CryptUtil.CalculateSha256(cacheItem + "?" + versionMd5);
 
             var filePath = Path.Combine(CacheDirectory, filename);
+
+            if (!forceOrigin && cacheItem.StartsWith("scenario/json/general"))
+            {
+                var generalJson = Path.Combine(CacheDirectory, cacheItem + versionMd5);
+                if (File.Exists(generalJson))
+                {
+                    return new DiskCacheItem()
+                    {
+                        Data = File.Open(generalJson, FileMode.Open, FileAccess.Read, FileShare.Read),
+                        Result = DiskCacheResultType.Success
+                    };
+                }
+                else
+                {
+                    Log.Warning($"Cache item {generalJson} not found!");
+                    return new DiskCacheItem()
+                    {
+                        Result = DiskCacheResultType.Failed
+                    };
+                }
+            }
             if (File.Exists(filePath))
             {
                 Log.Debug($"Loading {cacheItem} from disk ({filePath}).");
@@ -56,7 +80,10 @@ namespace KamihamaWeb.Services
                         }
                         else
                         {
-                            return new Tuple<int, Stream>(0, stream);
+                            return new DiskCacheItem()
+                            {
+                                Data = stream
+                            };
                         }
                     }
                     catch (IOException) // File in use, wait
@@ -66,14 +93,39 @@ namespace KamihamaWeb.Services
                     }
                 }
                 Log.Warning($"Max loops exceeded in DiskCacheService.Get() for {cacheItem}.");
-                return new Tuple<int, Stream>(500, null);
+                return new DiskCacheItem()
+                {
+                    Result = DiskCacheResultType.Failed
+                };
             }
             Log.Information($"Fetching {cacheItem}.");
             
             return await FastFetch(cacheItem, filePath, versionMd5);
         }
 
-        private async Task<Tuple<int, Stream>> FastFetch(string item, string path, string md5)
+        public async Task<string> Store(string filepath, byte[] storeContents, StoreType type)
+        {
+            string storePath;
+            switch (type)
+            {
+                case StoreType.ScenarioGeneral:
+                    var md5 = CryptUtil.CalculateMd5Bytes(storeContents);
+                    storePath = Path.Combine(CacheDirectory, filepath + md5);
+                    await File.WriteAllBytesAsync(storePath, storeContents);
+                    break;
+                default:
+                    throw new Exception("Invalid StoreType.");
+            }
+
+            return storePath;
+        }
+
+        public enum StoreType
+        {
+            ScenarioGeneral
+        }
+
+        private async Task<DiskCacheItem> FastFetch(string item, string path, string md5)
         {
             var maxLoops = 5;
             var deleteFlag = false;
@@ -89,19 +141,23 @@ namespace KamihamaWeb.Services
 
                         if (file.Length > 0)
                         {
-                            return new Tuple<int, Stream>(0, file);
+                            return new DiskCacheItem()
+                            {
+                                Data = file,
+                                Result = DiskCacheResultType.Success
+                            };
                         }
 
                         var stream = await Rest.FetchAsset(item + $"?{md5}");
 
-                        if (stream.Item2 == null)
+                        if (stream.Data == null)
                         {
                             deleteFlag = true;
                             return stream;
                         }
 
-                        ((MemoryStream) stream.Item2).WriteTo(file);
-                        stream.Item2.Seek(0, SeekOrigin.Begin);
+                        ((MemoryStream) stream.Data).WriteTo(file);
+                        stream.Data.Seek(0, SeekOrigin.Begin);
                         return stream;
                     }
                     catch (Exception)
@@ -126,9 +182,25 @@ namespace KamihamaWeb.Services
             }
             Log.Warning($"Max loops exceeded in DiskCacheService.FastFetch() for {item}.");
             File.Delete(path);
-            return new Tuple<int, Stream>(500, null);
+            return new DiskCacheItem()
+            {
+                Result = DiskCacheResultType.Failed
+            };
         }
 
 
+    }
+
+    public class DiskCacheItem
+    {
+        public Stream Data { get; set; } = null;
+        public DiskCacheResultType Result { get; set; } = DiskCacheResultType.Success;
+    }
+
+    public enum DiskCacheResultType
+    {
+        Success = 0,
+        Failed = 500,
+        NotFound = 404
     }
 }

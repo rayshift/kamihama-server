@@ -51,7 +51,8 @@ namespace KamihamaWeb.Models
     public enum AssetSourceType
     {
         Local,
-        Remote
+        Remote,
+        GeneralScript
     }
 
 }

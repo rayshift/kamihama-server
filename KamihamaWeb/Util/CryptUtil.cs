@@ -32,5 +32,26 @@ namespace KamihamaWeb.Util
 
             return sb.ToString();
         }
+
+        public static byte[] ReadFully(Stream input)
+        {
+            using MemoryStream ms = new MemoryStream();
+            input.CopyTo(ms);
+            return ms.ToArray();
+        }
+
+        public static object CalculateMd5Bytes(byte[] storeContents)
+        {
+            using var md5 = MD5.Create();
+            using var stream = new MemoryStream(storeContents);
+
+            StringBuilder sb = new StringBuilder();
+            foreach (byte b in md5.ComputeHash(stream))
+            {
+                sb.Append(b.ToString("x2"));
+            }
+
+            return sb.ToString();
+        }
     }
 }

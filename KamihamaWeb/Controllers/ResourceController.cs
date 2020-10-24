@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using KamihamaWeb.Interfaces;
 using KamihamaWeb.Models;
+using KamihamaWeb.Services;
 using Marvin.Cache.Headers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -90,7 +91,7 @@ namespace KamihamaWeb.Controllers
             {
                 var md5 = qs.Value.Substring(1);
 
-                if (_masterService.EnglishMasterAssets.ContainsKey(url))
+                if (!url.StartsWith("scenario/json/general/") && _masterService.EnglishMasterAssets.ContainsKey(url))
                 {
                     if (_masterService.EnglishMasterAssets[url].Md5 == md5)
                     {
@@ -120,17 +121,17 @@ namespace KamihamaWeb.Controllers
                 }
                 var asset = await _diskCache.Get(url, md5);
 
-                if (asset.Item1 == 404)
+                if (asset.Result == DiskCacheResultType.NotFound)
                 {
                     return new APIResult(404, "asset not found");
                 }
-                else if (asset.Item1 == 500)
+                else if (asset.Result == DiskCacheResultType.Failed)
                 {
                     return new APIResult(503, "internal error fetching asset");
                 }
                 else
                 {
-                    return new FileStreamResult(asset.Item2, "binary/octet-stream");
+                    return new FileStreamResult(asset.Data, "binary/octet-stream");
                 }
             }
             else

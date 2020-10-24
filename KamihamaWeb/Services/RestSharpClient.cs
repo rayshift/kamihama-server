@@ -72,7 +72,7 @@ namespace KamihamaWeb.Services
             return result.Content;
         }
 
-        public async Task<Tuple<int, Stream>> FetchAsset(string item)
+        public async Task<DiskCacheItem> FetchAsset(string item)
         {
             var request = new RestRequest("resource/" + item, Method.GET);
             
@@ -82,17 +82,27 @@ namespace KamihamaWeb.Services
 
                 if (response.StatusCode == HttpStatusCode.NotFound || response.ContentType == "text/html")
                 {
-                    return new Tuple<int, Stream>(404, null);
+                    return new DiskCacheItem()
+                    {
+                        Result = DiskCacheResultType.NotFound
+                    };
                 }
 
                 var stream = new MemoryStream(response.RawBytes);
-                return new Tuple<int, Stream>(0, stream);
+                return new DiskCacheItem()
+                {
+                    Result = DiskCacheResultType.Success,
+                    Data = stream
+                };
             }
             catch (WebException ex)
             {
                 Log.Warning($"Web exception thrown: Status code {ex.Status}, {ex.ToString()}");
             }
-            return new Tuple<int, Stream>(500, null);
+            return new DiskCacheItem()
+            {
+                Result = DiskCacheResultType.Failed
+            };
         }
     }
 }

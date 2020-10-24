@@ -2,6 +2,7 @@
 using System.IO;
 using System.Threading.Tasks;
 using KamihamaWeb.Models;
+using KamihamaWeb.Services;
 
 namespace KamihamaWeb.Interfaces
 {
@@ -13,7 +14,7 @@ namespace KamihamaWeb.Interfaces
     public interface IRestSharpTransient : IRestSharpClient
     {
         Task<T> GetMasterJson<T>(string masterJsonEndpoint);
-        Task<Tuple<int, Stream>> FetchAsset(string item);
+        Task<DiskCacheItem> FetchAsset(string item);
         Task<string> GetAdditionalJson(string item);
     }
 }

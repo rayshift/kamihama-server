@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using KamihamaWeb.Interfaces;
 using KamihamaWeb.Services;
+using KamihamaWeb.Util;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -46,6 +47,7 @@ namespace KamihamaWeb
             services.AddTransient<IRestSharpTransient, RestSharpClient>();
             services.AddSingleton<IMasterSingleton, MasterService>();
             services.AddSingleton<IDiskCacheSingleton, DiskCacheService>();
+            services.AddTransient<IMasterListBuilder, MasterListBuilder>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
