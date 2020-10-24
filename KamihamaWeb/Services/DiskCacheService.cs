@@ -38,13 +38,13 @@ namespace KamihamaWeb.Services
 
         public async Task<DiskCacheItem> Get(string cacheItem, string versionMd5, bool forceOrigin = false)
         {
+            // Remember: don't allow directory traversal attacks...
             var filename = CryptUtil.CalculateSha256(cacheItem + "?" + versionMd5);
-
             var filePath = Path.Combine(CacheDirectory, filename);
 
             if (!forceOrigin && cacheItem.StartsWith("scenario/json/general"))
             {
-                var generalJson = Path.Combine(CacheDirectory, cacheItem + versionMd5);
+                var generalJson = Path.Combine(ScenarioCacheDirectory, filename);
                 if (File.Exists(generalJson))
                 {
                     return new DiskCacheItem()
@@ -110,7 +110,8 @@ namespace KamihamaWeb.Services
             {
                 case StoreType.ScenarioGeneral:
                     var md5 = CryptUtil.CalculateMd5Bytes(storeContents);
-                    storePath = Path.Combine(CacheDirectory, filepath + md5);
+                    var filename = CryptUtil.CalculateSha256(filepath + "?" + md5);
+                    storePath = Path.Combine(ScenarioCacheDirectory, filename);
                     await File.WriteAllBytesAsync(storePath, storeContents);
                     break;
                 default:

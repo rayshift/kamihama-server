@@ -63,6 +63,8 @@ namespace KamihamaWeb.Services
         public async Task<bool> UpdateMasterLists()
         {
             Log.Information("Updating master lists.");
+            UpdateIsRunning = true;
+
             var workGamedataAssets = new Dictionary<string, List<GamedataAsset>>();
             foreach (var assetToMod in ModdedAssetLists)
             {
@@ -78,12 +80,10 @@ namespace KamihamaWeb.Services
                 workGamedataAssets.Add(assetToMod, masterJson);
             }
 
-            IsReady = false;
-            GamedataAssets.Clear();
-
             Log.Information("Configuring master list...");
 
             var postProcessingGeneralScenario = new Dictionary<string, GamedataAsset>();
+            var newGamedataAssets = new Dictionary<string, Dictionary<string, GamedataAsset>>();
 
             long counterReplace = 0;
             long counterSkip = 0;
@@ -123,7 +123,7 @@ namespace KamihamaWeb.Services
                         counterNew++;
                     }
                 }
-                GamedataAssets.Add(assetType.Key, readyAssets);
+                newGamedataAssets.Add(assetType.Key, readyAssets);
             }
             Log.Information($"Finished setting up. {counterReplace} replaced assets, {counterSkip} duplicate assets, {counterNew} new assets, {counterPost} assets for post processing.");
 
@@ -135,7 +135,7 @@ namespace KamihamaWeb.Services
                     var split = asset.Key.Split("/").Last();
                     var scenario = split[0..^5]; // Trim .json from end
                     //Log.Debug($"Adding script {scenario}.");
-                    GamedataAssets.Add($"asset_scenario_{scenario}", new Dictionary<string, GamedataAsset>()
+                    newGamedataAssets.Add($"asset_scenario_{scenario}", new Dictionary<string, GamedataAsset>()
                     {
                         {scenario,asset.Value}
                     });
@@ -147,9 +147,13 @@ namespace KamihamaWeb.Services
             {
                 var builtJson = await _builder.BuildScenarioGeneralJson(asset.Value, EnglishMasterAssets);
 
-                GamedataAssets["asset_main"].Add(builtJson.Path, builtJson);
+                newGamedataAssets["asset_main"].Add(builtJson.Path, builtJson);
             }
+
+            IsReady = false;
+            GamedataAssets = newGamedataAssets;
             IsReady = true;
+            UpdateIsRunning = false;
             return true;
         }
 
@@ -193,6 +197,7 @@ namespace KamihamaWeb.Services
         }
 
         public bool IsReady { get; set; } = false;
+        public bool UpdateIsRunning { get; set; } = false;
         public long AssetsCurrentVersion { get; set; }
         public Dictionary<string, GamedataAsset> EnglishMasterAssets { get; set; }
         public Dictionary<string, Dictionary<string, GamedataAsset>> GamedataAssets { get; set; }
@@ -208,6 +213,11 @@ namespace KamihamaWeb.Services
             {
                 return false;
             }
+        }
+
+        public async Task<bool> RunUpdate()
+        {
+            return true;
         }
 
         public async Task<string> ProvideJson(string which)
