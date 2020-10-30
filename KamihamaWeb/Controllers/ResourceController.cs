@@ -71,6 +71,7 @@ namespace KamihamaWeb.Controllers
 
         [Route("resource/{*url}")]
         [HttpGet]
+        [HttpCacheExpiration(MaxAge = 60*60*24)]
         public async Task<IActionResult> GetAsset(string url)
         {
             /*WebClient wc = new WebClient();
