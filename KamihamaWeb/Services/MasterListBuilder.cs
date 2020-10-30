@@ -121,6 +121,7 @@ namespace KamihamaWeb.Services
                              || asset.Key.StartsWith("image_native/scene/emotion/")
                              || asset.Key.StartsWith("image_native/scene/event/")
                              || asset.Key.StartsWith("image_native/scene/web/")
+                             || asset.Key.StartsWith("image_native/effect/quest")
                              )
                     {
                         Log.Debug($"Removing invalid asset {asset.Key}.");
