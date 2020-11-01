@@ -28,11 +28,11 @@ namespace KamihamaWeb
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddStackExchangeRedisCache(action =>
+            /*services.AddStackExchangeRedisCache(action =>
             {
                 action.InstanceName = Configuration["DatabaseConfiguration:RedisInstanceName"];
                 action.Configuration = Configuration["DatabaseConfiguration:RedisConfiguration"];
-            });
+            });*/
             services.AddHttpCacheHeaders();
             services.AddControllersWithViews();
 

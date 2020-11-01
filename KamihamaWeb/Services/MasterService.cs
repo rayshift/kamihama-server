@@ -18,23 +18,25 @@ namespace KamihamaWeb.Services
     public class MasterService: IMasterSingleton
     {
 
-        private IDatabase _cache { get; set; }
+       // private IDatabase _cache { get; set; }
         private IConfiguration _config { get; set; }
         private IRestSharpTransient _rest { get; set; }
         private IMasterListBuilder _builder { get; set; }
 
         public MasterService(
-            IDistributedCache cache, 
+            //IDistributedCache cache, 
             IConfiguration config,
             IRestSharpTransient rest,
             IMasterListBuilder builder
-            ) : this(Guid.NewGuid(), cache, config, rest, builder)
+            ) : this(Guid.NewGuid(), 
+            //cache, 
+            config, rest, builder)
         {
         }
 
         public MasterService(
             Guid guid, 
-            IDistributedCache cache, 
+            //IDistributedCache cache, 
             IConfiguration config,
             IRestSharpTransient rest,
             IMasterListBuilder builder
@@ -42,7 +44,7 @@ namespace KamihamaWeb.Services
         {
             Guid = guid;
             _config = config;
-            _cache = ((RedisCache) cache).GetConnection().GetDatabase();
+            //_cache = ((RedisCache) cache).GetConnection().GetDatabase();
             _rest = rest;
             _builder = builder;
 

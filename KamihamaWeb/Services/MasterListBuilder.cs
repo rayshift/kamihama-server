@@ -22,14 +22,14 @@ namespace KamihamaWeb.Services
         private readonly Regex _multiPartRegex = new Regex(@"\.a[a-z]{2}"); // A bit crude
 
         private IDiskCacheSingleton _disk;
-        private IDatabase _cache;
+        //private IDatabase _cache;
 
-        public MasterListBuilder(IDiskCacheSingleton disk, IDistributedCache cache)
+        public MasterListBuilder(IDiskCacheSingleton disk)
         {
             BasePathLength =
                 @"MagiRecoStatic/magica/resource/download/asset/master/resource/".Length;
 
-            _cache = ((RedisCache)cache).GetConnection().GetDatabase();
+           // _cache = ((RedisCache)cache).GetConnection().GetDatabase();
             _disk = disk;
         }
 
