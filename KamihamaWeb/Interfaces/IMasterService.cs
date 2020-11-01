@@ -17,6 +17,7 @@ namespace KamihamaWeb.Interfaces
         public long AssetsCurrentVersion { get; set; }
         public Dictionary<string, GamedataAsset> EnglishMasterAssets { get; set; }
         public Dictionary<string, Dictionary<string, GamedataAsset>> GamedataAssets { get; set; }
+        public Dictionary<string, string> Endpoints { get; set; }
         public Task<string> ProvideJson(string which);
         public Task<bool> RunUpdate();
     }

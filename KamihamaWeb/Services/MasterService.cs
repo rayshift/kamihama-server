@@ -45,9 +45,31 @@ namespace KamihamaWeb.Services
             _cache = ((RedisCache) cache).GetConnection().GetDatabase();
             _rest = rest;
             _builder = builder;
+
+            if (_config["MagiRecoServer:Type"] == "master")
+            {
+                Log.Information("This is a master server, populating endpoints.");
+
+                foreach (var item in _config.GetSection("MagiRecoNodes").Get<Dictionary<string, string>>())
+                {
+                    Log.Information($"{item.Key} -> {item.Value}");
+                    foreach (var endpoint in item.Key.Split(","))
+                    {
+                        Endpoints.Add(endpoint, item.Value);
+                    }
+                }
+
+                if (!Endpoints.ContainsKey("*"))
+                {
+                    Log.Fatal("Missing * endpoint in config! Please add one!");
+                    throw new Exception("Missing * endpoint in config! Please add one!");
+                }
+            }
             Task.Run(Initialize);
         }
         public Guid Guid { get; set; }
+
+        public Dictionary<string, string> Endpoints { get; set; } = new Dictionary<string, string>();
 
         public List<string> ModdedAssetLists = new List<string>()
         {
