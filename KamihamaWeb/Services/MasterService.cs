@@ -126,6 +126,7 @@ namespace KamihamaWeb.Services
             long counterSkip = 0;
             long counterNew = 0;
             long counterPost = 0;
+            long counterDifferentImage = 0;
 
             foreach (var assetType in workGamedataAssets)
             {
@@ -159,10 +160,42 @@ namespace KamihamaWeb.Services
                         readyAssets.Add(asset.Path, asset);
                         counterNew++;
                     }
+
+                    if (asset.Path.EndsWith(".png") || asset.Path.EndsWith(".jpg") || asset.Path.EndsWith(".jpeg"))
+                    {
+                        var ext = Path.GetExtension(asset.Path);
+                        if (ext != null)
+                        {
+                            var fileFolder = asset.Path.Split("/");
+                            fileFolder = fileFolder.Take(fileFolder.Length - 1).ToArray();
+
+                            var fileFolderJoined = string.Join("/", fileFolder);
+                            var baseFile = fileFolderJoined + "/" + Path.GetFileNameWithoutExtension(asset.Path);
+                            // Look for file in English
+                            if (ext != ".png" && EnglishMasterAssets.ContainsKey(baseFile + ".png"))
+                            {
+                                //Log.Information($"Adding bonus asset {baseFile}.png");
+                                readyAssets.Add(baseFile + ".png", EnglishMasterAssets[baseFile + ".png"]);
+                                counterDifferentImage++;
+                            }
+                            else if (ext != ".jpg" && EnglishMasterAssets.ContainsKey(baseFile + ".jpg"))
+                            {
+                                //Log.Information($"Adding bonus asset {baseFile}.jpg");
+                                readyAssets.Add(baseFile + ".jpg", EnglishMasterAssets[baseFile + ".jpg"]);
+                                counterDifferentImage++;
+                            }
+                            else if (ext != ".jpeg" && EnglishMasterAssets.ContainsKey(baseFile + ".jpeg"))
+                            {
+                                //Log.Information($"Adding bonus asset {baseFile}.png");
+                                readyAssets.Add(baseFile + ".jpeg", EnglishMasterAssets[baseFile + ".jpeg"]);
+                                counterDifferentImage++;
+                            }
+                        }
+                    }
                 }
                 newGamedataAssets.Add(assetType.Key, readyAssets);
             }
-            Log.Information($"Finished setting up. {counterReplace} replaced assets, {counterSkip} duplicate assets, {counterNew} new assets, {counterPost} assets for post processing.");
+            Log.Information($"Finished setting up. {counterReplace} replaced assets, {counterSkip} duplicate assets, {counterNew} new assets, {counterDifferentImage} extra english assets, {counterPost} assets for post processing.");
 
             // Add scripts
             foreach (var asset in EnglishMasterAssets)
