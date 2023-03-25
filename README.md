@@ -59,3 +59,6 @@ Bash file to update assets:
 cd /home/rayshift/KamihamaWeb
 cd MagiRecoStatic/ && git pull --rebase origin master && cd .. && rm en_cache.json && sudo systemctl restart kestrel-kamihama-prod.service
 ```
+
+## Contributing
+Contributions are strongly encouraged as this server implementation will not receive further updates by its creator. Please create a pull request with your changes.
