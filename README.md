@@ -31,7 +31,7 @@ If the country code isn't found in the config file, the default (`*`) will be us
 - Clone https://git.rayshift.io/kamihama/magia-assets.git or your own assets into this directory `git clone URL`.
 - Run the server, either directly `./KamihamaWeb`, or through a systemd service:
 
-- /etc/systemd/system/kestrel-kamihama-prod.service
+/etc/systemd/system/kestrel-kamihama-prod.service
 ```
 [Unit]
 Description=Kamihama Server
